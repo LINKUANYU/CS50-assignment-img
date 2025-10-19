@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <title>vh vs dvh vs svh vs lvh - Minimal Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <style>
+    :root{ --radius:16px; --pad:16px; }
+    html,body{ margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; line-height:1.5; }
+    .note{
+      position: sticky; top: 0; z-index: 2; padding: 12px 16px;
+      background: #111; color: #fff; border-bottom: 1px solid #333;
+    }
+    .wrap{ display:block; }
+    .panel{
+      position: relative; display:flex; flex-direction:column; justify-content:center; align-items:center;
+      padding: calc(var(--pad) + env(safe-area-inset-top)) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom));
+      box-sizing: border-box; text-align:center;
+    }
+    .panel h2{ margin: 0 0 8px; }
+    .panel p { margin: 0.25rem 0; max-width: 60ch; }
+    .vh  { min-height: 100vh;  background: #ffe8e8; }
+    .dvh { min-height: 100dvh; background: #e8fff0; }
+    .svh { min-height: 100svh; background: #e8f1ff; }
+    .lvh { min-height: 100lvh; background: #fff0e8; }
+
+    /* 右下角量測面板（不阻擋點擊） */
+    .metrics{
+      position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
+      margin-left:auto; margin-right:auto; max-width: 680px;
+      background: rgba(0,0,0,.75); color: #fff;
+      border: 1px solid rgba(255,255,255,.2); border-radius: var(--radius);
+      backdrop-filter: saturate(1.2) blur(6px); -webkit-backdrop-filter: saturate(1.2) blur(6px);
+      font-size: 13px; line-height: 1.4; padding: 10px 12px; pointer-events: none; z-index: 9;
+    }
+    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+    .k{ color:#aaa; }
+    .v{ font-variant-numeric: tabular-nums; }
+    .hint{ opacity:.85; margin-top: 6px; }
+    .chip{ display:inline-block; padding: 2px 8px; border-radius: 999px; background:#222; border:1px solid #333; }
+    .badge{ font-size:12px; padding:2px 8px; border-radius:999px; background:#00000014; border:1px solid #00000022; }
+
+    /* 讓每個面板底部都有個可視的「底線」，檢查是否被工具列/指示條擋住 */
+    .bottom-mark{
+      position:absolute; left:0; right:0; bottom: 0;
+      height: 8px; background: repeating-linear-gradient(90deg, #0000 0 8px, #0006 8px 16px);
+    }
+  </style>
+</head>
+<body>
+  <div class="note">
+    這頁用來比較 <strong>100vh / 100dvh / 100svh / 100lvh</strong>。
+    在 iPhone Safari 上滑動（讓工具列展開/縮起）、聚焦輸入框、切分頁，觀察右下角數字變化。
+  </div>
+
+  <main class="wrap">
+    <section class="panel vh">
+      <h2>面板 A：100<span class="badge">vh</span></h2>
+      <p>傳統視窗高度百分比。行動裝置上常與你「此刻能看到的高度」不一致。</p>
+      <p class="hint">測試：停在頂端（工具列展開）與滑動縮起時，看看右下角 <em>vh(px)</em> 是否與 <em>innerHeight</em> 一致。</p>
+      <div class="bottom-mark" title="這條應該貼齊可視底部；若被工具列蓋住，代表高度估錯"></div>
+    </section>
+
+    <section class="panel dvh">
+      <h2>面板 B：100<span class="badge">dvh</span></h2>
+      <p>Dynamic Viewport Height：會隨工具列/鍵盤出現與隱藏<strong>即時更新</strong>為「當前可視高度」。</p>
+      <p class="hint">測試：滑動讓工具列縮起，<em>dvh(px)</em> 會跟著變大；展開時又變小，通常與 <em>innerHeight</em> 更貼近。</p>
+      <div class="bottom-mark"></div>
+    </section>
+
+    <section class="panel svh">
+      <h2>面板 C：100<span class="badge">svh</span></h2>
+      <p>Small Viewport Height：鎖定「工具列展開時」的<span class="chip">最小</span>高度。</p>
+      <p class="hint">測試：不論你把工具列縮起多少，<em>svh(px)</em> 都會維持偏小，版面相對<strong>不跳動</strong>。</p>
+      <div class="bottom-mark"></div>
+    </section>
+
+    <section class="panel lvh">
+      <h2>面板 D：100<span class="badge">lvh</span></h2>
+      <p>Large Viewport Height：鎖定「工具列縮起時」的<span class="chip">最大</span>高度。</p>
+      <p class="hint">測試：停在頂端（工具列展開）時，<em>lvh(px)</em> 會比實際可視高度大，容易造成底部超出或被擋。</p>
+      <div class="bottom-mark"></div>
+    </section>
+  </main>
+
+  <!-- 量測面板（會即時更新） -->
+  <aside class="metrics" id="metrics" aria-live="polite">
+    <div class="grid">
+      <div class="k">innerHeight</div><div class="v" id="ih">-</div>
+      <div class="k">clientHeight</div><div class="v" id="ch">-</div>
+      <div class="k">vh (100vh)</div><div class="v" id="vh">-</div>
+      <div class="k">dvh (100dvh)</div><div class="v" id="dvh">-</div>
+      <div class="k">svh (100svh)</div><div class="v" id="svh">-</div>
+      <div class="k">lvh (100lvh)</div><div class="v" id="lvh">-</div>
+      <div class="k">orientation</div><div class="v" id="ori">-</div>
+    </div>
+    <div class="hint">提示：在 iPhone Safari 上，上下滑動讓工具列展開/縮起；觀察 dvh 會跟著變化，而 vh 可能不跟。</div>
+  </aside>
+
+  <script>
+    // 以實際 DOM 量測 100<unit> 換算成像素（若瀏覽器不支援該單位，值可能為 0）
+    function measureUnit(unit){
+      const el = document.createElement('div');
+      el.setAttribute('aria-hidden','true');
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      el.style.top = '0';
+      el.style.width = '1px';
+      el.style.height = `calc(100${unit})`;
+      document.body.appendChild(el);
+      const h = Math.round(el.getBoundingClientRect().height);
+      el.remove();
+      return h;
+    }
+    function getOrientation(){
+      const so = screen.orientation && screen.orientation.type || '';
+      if (so) return so;
+      // fallback
+      return (window.innerWidth > window.innerHeight) ? 'landscape' : 'portrait';
+    }
+    function px(n){ return (n === 0 ? '0 (可能不支援)' : n + ' px'); }
+
+    function update(){
+      document.getElementById('ih').textContent  = window.innerHeight + ' px';
+      document.getElementById('ch').textContent  = document.documentElement.clientHeight + ' px';
+      document.getElementById('vh').textContent  = px(measureUnit('vh'));
+      document.getElementById('dvh').textContent = px(measureUnit('dvh'));
+      document.getElementById('svh').textContent = px(measureUnit('svh'));
+      document.getElementById('lvh').textContent = px(measureUnit('lvh'));
+      document.getElementById('ori').textContent = getOrientation();
+    }
+
+    ['load','resize','scroll','orientationchange','focus','blur','visibilitychange'].forEach(evt=>{
+      window.addEventListener(evt, () => { requestAnimationFrame(update); }, {passive:true});
+    });
+    update();
+  </script>
+</body>
+</html>
